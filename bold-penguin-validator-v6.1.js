@@ -660,7 +660,14 @@ async function validateButtonClick(page, locator, description, returnToUrl) {
     let backSuccess = false;
     let backError = '';
     try {
-      await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+      // Same-window redirects add intermediate history entries, so step back until the source page is reached.
+      for (let step = 0; step < 4; step++) {
+        const response = await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+        if (!response && normalizeUrlForComparison(page.url()) !== normalizeUrlForComparison(returnToUrl)) {
+          await page.waitForTimeout(500);
+        }
+        if (normalizeUrlForComparison(page.url()) === normalizeUrlForComparison(returnToUrl)) break;
+      }
       const settleAfterBack = await waitForPageToSettle(page, NAV_TIMEOUT);
       const urlMatches = normalizeUrlForComparison(page.url()) === normalizeUrlForComparison(returnToUrl);
       backSuccess = urlMatches && settleAfterBack.success;
