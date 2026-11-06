@@ -1,0 +1,28 @@
+{
+  "name": "new-folder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bold-penguin-button-validator.js",
+  "scripts": {
+    "test": "npm run test:e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "validate": "node bold-penguin-validator-v6.1.js --file url.csv --desktop",
+    "validate:mobile": "node bold-penguin-validator-v6.1.js --file url.csv --mobile",
+    "validate:all": "node bold-penguin-validator-v6.1.js --file url.csv --all",
+    "validate:ci": "node bold-penguin-validator-v6.1.js --file url.csv --all --parallel 2",
+    "validate:e2e": "node run-desktop-and-mobile.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "csv-parse": "^7.0.2",
+    "playwright": "^1.62.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

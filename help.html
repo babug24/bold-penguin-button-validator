@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bold Penguin E2E Framework Help</title>
+  <style>
+    :root { --ink:#17202a; --muted:#5d6d7e; --blue:#145da0; --light:#eef6ff; --line:#d9e2ec; --code:#17202a; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#f6f8fb; font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    header { color:white; background:linear-gradient(135deg,#123b63,#1877b8); padding:48px 24px; }
+    header div, main { max-width:1100px; margin:auto; }
+    h1 { margin:0 0 8px; font-size:clamp(2rem,4vw,3.2rem); }
+    h2 { margin-top:42px; color:#123b63; border-bottom:2px solid var(--line); padding-bottom:8px; }
+    h3 { color:#145da0; margin-top:28px; }
+    main { background:white; padding:24px clamp(20px,4vw,54px) 60px; box-shadow:0 5px 25px #20304012; }
+    .lead { margin:0; color:#e7f3ff; font-size:1.1rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+    .card { border:1px solid var(--line); border-radius:10px; padding:16px; background:#fff; }
+    .card strong { display:block; color:#145da0; margin-bottom:4px; }
+    code { background:#edf1f5; border-radius:4px; padding:2px 5px; }
+    pre { overflow:auto; background:var(--code); color:#eaf2f8; padding:16px; border-radius:8px; }
+    pre code { background:transparent; padding:0; }
+    .note { border-left:4px solid #f39c12; background:#fff8e8; padding:12px 16px; }
+    .ok { border-left-color:#27ae60; background:#effaf3; }
+    table { width:100%; border-collapse:collapse; margin:12px 0; }
+    th,td { border:1px solid var(--line); padding:9px 11px; text-align:left; vertical-align:top; }
+    th { background:var(--light); }
+    a { color:var(--blue); }
+    footer { color:var(--muted); font-size:.9rem; margin-top:40px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Bold Penguin E2E Framework</h1>
+      <p class="lead">Execution, test-data, locator, reporting, and troubleshooting guide.</p>
+    </div>
+  </header>
+  <main>
+    <h2>1. What this framework does</h2>
+    <p>The framework reads Nationwide URLs from a CSV file and validates Bold Penguin CTAs in desktop Chrome and mobile Chromium. Playwright automatically captures a trace, screenshot, and video when a test fails.</p>
+    <div class="grid">
+      <div class="card"><strong>Desktop</strong>Desktop Chrome viewport and user agent.</div>
+      <div class="card"><strong>Mobile</strong>iPhone 12 emulation using Chromium.</div>
+      <div class="card"><strong>Test data</strong>One Playwright test is created for each CSV URL.</div>
+      <div class="card"><strong>Reports</strong>HTML report plus failure artifacts.</div>
+    </div>
+
+    <h2>2. First-time setup</h2>
+    <pre><code>cd C:\NW_Testing\bold-penguin-button-validator
+npm install
+npx playwright install chromium</code></pre>
+    <p>Run these commands from the project folder. Use Node.js 18 or newer.</p>
+
+    <h2>3. CSV test data</h2>
+    <p>The default file is <code>url.csv</code>. It must contain a header named <code>URL</code>, <code>url</code>, or <code>Url</code>.</p>
+    <pre><code>URL
+https://www.example.com/page-one
+https://www.example.com/page-two</code></pre>
+    <p>The parser is maintained in <code>utils/test-data.js</code>. Empty rows are ignored.</p>
+    <h3>Use another CSV</h3>
+    <pre><code>$env:BP_URL_FILE = '.\data\smoke.csv'
+npm run test:e2e
+Remove-Item Env:BP_URL_FILE</code></pre>
+
+    <h2>4. Run tests</h2>
+    <table>
+      <thead><tr><th>Purpose</th><th>Command</th></tr></thead>
+      <tbody>
+        <tr><td>Desktop and mobile</td><td><code>npm run test:e2e</code></td></tr>
+        <tr><td>Desktop only</td><td><code>node .\run-desktop-and-mobile.js --desktop</code></td></tr>
+        <tr><td>Mobile only</td><td><code>node .\run-desktop-and-mobile.js --mobile</code></td></tr>
+        <tr><td>Run with browser visible</td><td><code>node .\run-desktop-and-mobile.js --headed</code></td></tr>
+        <tr><td>List discovered tests</td><td><code>node .\run-desktop-and-mobile.js --list</code></td></tr>
+        <tr><td>Run one test by text</td><td><code>npx playwright test --grep "commercial-vehicle"</code></td></tr>
+        <tr><td>Debug one test</td><td><code>npx playwright test --debug --grep "commercial-vehicle"</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note">The wrapper runs desktop and mobile separately. Arguments such as <code>--headed</code>, <code>--debug</code>, <code>--grep</code>, and <code>--list</code> are passed to Playwright.</p>
+
+    <h2>5. Reports and traces</h2>
+    <h3>HTML report</h3>
+    <pre><code>npx playwright show-report .\reports\playwright-report</code></pre>
+    <h3>Find a failure trace</h3>
+    <pre><code>Get-ChildItem .\test-results -Recurse -Filter trace.zip</code></pre>
+    <p>Copy the resulting path, then open it:</p>
+    <pre><code>npx playwright show-trace .\test-results\&lt;test-folder&gt;\trace.zip</code></pre>
+    <p>Do not guess the test folder name. Playwright shortens names, so always find the actual <code>trace.zip</code> first.</p>
+    <table>
+      <thead><tr><th>Folder</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>reports/playwright-report</code></td><td>Interactive HTML report.</td></tr>
+        <tr><td><code>test-results</code></td><td>Trace, screenshot, video, and test attachments for failures.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>6. Locators and framework structure</h2>
+    <p>URLs belong in <code>url.csv</code>. Page-specific selectors belong in the Page Object Model, not in the CSV.</p>
+    <table>
+      <thead><tr><th>Path</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><code>pages/BoldPenguinPage.js</code></td><td>Page actions and CTA locators.</td></tr>
+        <tr><td><code>tests/bold-penguin.spec.js</code></td><td>Test creation, execution, and assertions.</td></tr>
+        <tr><td><code>utils/test-data.js</code></td><td>CSV loading and URL validation.</td></tr>
+        <tr><td><code>playwright.config.js</code></td><td>Projects, timeouts, traces, screenshots, videos, and reporters.</td></tr>
+        <tr><td><code>run-desktop-and-mobile.js</code></td><td>Desktop/mobile command wrapper.</td></tr>
+      </tbody>
+    </table>
+    <p>Current CTA discovery includes links, buttons, role buttons, router links, and elements with URL attributes. If a site changes its markup, update the page object or validation selector logic rather than changing <code>url.csv</code>.</p>
+
+    <h2>7. Test hooks</h2>
+    <p>Hooks are automatic setup and cleanup steps in the Playwright test lifecycle. The current test file uses two hooks:</p>
+    <table>
+      <thead><tr><th>Hook</th><th>When it runs</th><th>Current purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>test.beforeEach</code></td><td>Before every URL test</td><td>Sets action timeout to 15 seconds and navigation timeout to 30 seconds.</td></tr>
+        <tr><td><code>test.afterEach</code></td><td>After every URL test</td><td>Logs failed test names and the Playwright artifact directory.</td></tr>
+      </tbody>
+    </table>
+    <pre><code>test.beforeEach(async ({ context }) =&gt; {
+  context.setDefaultTimeout(15000);
+  context.setDefaultNavigationTimeout(30000);
+});
+
+test.afterEach(async ({}, testInfo) =&gt; {
+  if (testInfo.status !== testInfo.expectedStatus) {
+    console.error(`Test failed: ${testInfo.title}`);
+  }
+});</code></pre>
+    <p>Do not manually close the Playwright <code>context</code>. Playwright creates an isolated context for each test and closes it automatically afterward.</p>
+
+    <h2>8. Troubleshooting</h2>
+    <h3>“CSV not found”</h3>
+    <p>Run from the project directory or provide an absolute/relative file through <code>BP_URL_FILE</code>.</p>
+    <h3>“No URLs found”</h3>
+    <p>Check that the CSV has a header row and that every URL is in the <code>URL</code> column.</p>
+    <h3>Trace file does not exist</h3>
+    <p>First run <code>Get-ChildItem .\test-results -Recurse -Filter trace.zip</code>. A trace is created only for a failed test because the configuration uses <code>retain-on-failure</code>.</p>
+    <h3>Navigation returns to the wrong URL</h3>
+    <p>Open the trace and inspect the clicked CTA, redirects, popup pages, and final URL. A redirect to a Bold Penguin endpoint may indicate an application navigation issue rather than a Playwright setup issue.</p>
+    <h3>Browser executable is missing</h3>
+    <pre><code>npx playwright install chromium</code></pre>
+
+    <h2>9. Useful cleanup</h2>
+    <pre><code>Remove-Item .\test-results -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item .\reports\playwright-report -Recurse -Force -ErrorAction SilentlyContinue</code></pre>
+    <p class="note ok">Only remove generated folders such as <code>test-results</code> and <code>reports/playwright-report</code>. Keep <code>url.csv</code>, the page object, tests, configuration, and utility files.</p>
+
+    <footer>Bold Penguin Button Validator • Playwright Test framework</footer>
+  </main>
+</body>
+</html>

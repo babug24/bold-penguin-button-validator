@@ -25,16 +25,19 @@ const { chromium, devices } = require('playwright');
 const XLSX = require('xlsx');
 
 let INPUT_CSV = 'urls.csv';
-let SINGLE_URL = null;
+// BASE_URL is useful for CI environments such as Harness. When it is set,
+// validate that URL instead of reading the default CSV file.
+let SINGLE_URL = process.env.BASE_URL || null;
 let MOBILE_MODE = false;
 let DESKTOP_MODE = false;
 let HEADED_MODE = false;
 let DEBUG_MODE = false;
 let PARALLEL_WORKERS = 1;
 let RUN_BOTH_MODES = false;
+const CLI_MODE = require.main === module;
 
 const args = process.argv.slice(2);
-for (let i = 0; i < args.length; i++) {
+if (CLI_MODE) for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--file' || arg === '--csv') {
     if (!args[++i]) throw new Error(`${arg} requires a file name`);
@@ -1492,22 +1495,33 @@ async function runValidationSession(modeName, isMobileMode) {
   return results;
 }
 
-(async () => {
-  const requestedModes = RUN_BOTH_MODES ? ['desktop', 'mobile']
-    : MOBILE_MODE ? ['mobile']
-    : ['desktop'];
+if (CLI_MODE) {
+  (async () => {
+    const requestedModes = RUN_BOTH_MODES ? ['desktop', 'mobile']
+      : MOBILE_MODE ? ['mobile']
+      : ['desktop'];
 
-  const allResults = [];
-  for (const modeName of requestedModes) {
-    console.log(`\n=== Running ${modeName} mode ===`);
-    const results = await runValidationSession(modeName, modeName === 'mobile');
-    if (Array.isArray(results)) allResults.push({ modeName, results });
-  }
+    const allResults = [];
+    for (const modeName of requestedModes) {
+      console.log(`\n=== Running ${modeName} mode ===`);
+      const results = await runValidationSession(modeName, modeName === 'mobile');
+      if (Array.isArray(results)) allResults.push({ modeName, results });
+    }
 
-  if (requestedModes.length > 1) {
-    console.log('\nCompleted the requested desktop/mobile validation runs.');
-  }
+    if (requestedModes.length > 1) {
+      console.log('\nCompleted the requested desktop/mobile validation runs.');
+    }
 
-  const anyFailed = allResults.some(({ results }) => results.some(r => r && r.status === 'FAIL'));
-  if (anyFailed) process.exitCode = 1;
-})();
+    const anyFailed = allResults.some(({ results }) => results.some(r => r && r.status === 'FAIL'));
+    if (anyFailed) process.exitCode = 1;
+  })().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  validateUrl,
+  writeReports,
+  runValidationSession
+};
