@@ -662,14 +662,35 @@ async function validateButtonClick(page, locator, description, returnToUrl) {
     logStep('Validating browser back navigation', 2);
     let backSuccess = false;
     let backError = '';
+    let backSteps = 0;
+    const MAX_BACK_STEPS = 4;
     try {
-      await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
-      const settleAfterBack = await waitForPageToSettle(page, NAV_TIMEOUT);
-      const urlMatches = normalizeUrlForComparison(page.url()) === normalizeUrlForComparison(returnToUrl);
+      let settleAfterBack = { success: false, reason: 'Back navigation was not attempted' };
+      let urlMatches = false;
+      let previousBackUrl = page.url();
+
+      // Some CTA flows add an intermediate redirect page to browser history
+      // (for example: Nationwide -> /nwdirect -> Bold Penguin form). Keep
+      // going back until the original page is reached or the safety limit is hit.
+      while (backSteps < MAX_BACK_STEPS) {
+        backSteps++;
+        const response = await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+        settleAfterBack = await waitForPageToSettle(page, NAV_TIMEOUT);
+        const currentBackUrl = page.url();
+        urlMatches = normalizeUrlForComparison(currentBackUrl) === normalizeUrlForComparison(returnToUrl);
+        if (urlMatches) break;
+        // Playwright may return null for a history traversal that still
+        // changed the URL. Continue when progress was made, even without a
+        // response object; stop only when the URL no longer changes.
+        if (!response && currentBackUrl === previousBackUrl) break;
+        previousBackUrl = currentBackUrl;
+        logStep(`Back navigation reached ${currentBackUrl}; continuing toward ${returnToUrl}`, 2);
+      }
+
       backSuccess = urlMatches && settleAfterBack.success;
 
       if (!urlMatches) {
-        backError = `Browser back returned ${page.url()} instead of ${returnToUrl}`;
+        backError = `Browser back returned ${page.url()} instead of ${returnToUrl} after ${backSteps} step(s)`;
       } else if (!settleAfterBack.success) {
         backError = `Browser back reached the expected URL but the page did not finish rendering: ${settleAfterBack.reason}`;
       }
