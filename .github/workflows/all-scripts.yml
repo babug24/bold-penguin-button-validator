@@ -1,0 +1,63 @@
+name: All scripts
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: all-scripts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run all scripts
+        run: |
+          npm run test:e2e
+          npm run test:e2e:sanity
+          npm run test:e2e:smoke
+          npm run test:e2e:regression
+          npm run validate
+          npm run validate:sanity
+          npm run validate:smoke
+          npm run validate:regression
+          npm run validate:spanish
+          npm run validate:mobile
+          npm run validate:all
+          npm run validate:ci
+          npm run validate:e2e
+
+      - name: Upload reports and artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-scripts-${{ github.run_number }}
+          path: |
+            reports/
+            screenshots/
+            test-results/
+            tests/validators/reports/
+          if-no-files-found: warn
+          retention-days: 14
