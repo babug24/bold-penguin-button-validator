@@ -1,0 +1,95 @@
+﻿name: All scripts
+run-name: All scripts (${{ github.ref_name }})
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: all-scripts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  run-script:
+    name: npm run ${{ matrix.script }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        script:
+          - test:e2e
+          - test:e2e:sanity
+          - test:e2e:spanish
+          - test:e2e:smoke
+          - test:e2e:regression
+          - validate
+          - validate:sanity
+          - validate:spanish
+          - validate:smoke
+          - validate:regression
+          - validate:mobile
+          - validate:all
+          - validate:ci
+          - validate:e2e
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Compute safe names
+        id: names
+        shell: bash
+        env:
+          TARGET_SCRIPT: ${{ matrix.script }}
+        run: |
+          set -euo pipefail
+          SAFE_SCRIPT="${TARGET_SCRIPT//:/-}"
+          echo "safe_script=${SAFE_SCRIPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Check if script exists
+        id: script
+        shell: bash
+        env:
+          TARGET_SCRIPT: ${{ matrix.script }}
+        run: |
+          set -euo pipefail
+          node -e "const pkg=require('./package.json'); const s=process.env.TARGET_SCRIPT; const exists=Boolean(pkg.scripts && pkg.scripts[s]); require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'exists='+(exists?'true':'false')+'\n');"
+
+      - name: Skip missing script
+        if: steps.script.outputs.exists != 'true'
+        run: echo "SKIP ${{ matrix.script }} (missing from package.json)"
+
+      - name: Run npm script
+        if: steps.script.outputs.exists == 'true'
+        run: npm run ${{ matrix.script }}
+
+      - name: Upload reports and artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-scripts-${{ steps.names.outputs.safe_script }}-${{ github.run_number }}
+          path: |
+            reports/
+            screenshots/
+            test-results/
+            tests/validators/reports/
+          if-no-files-found: warn
+          retention-days: 14

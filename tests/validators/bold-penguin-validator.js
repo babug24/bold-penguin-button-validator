@@ -5,11 +5,11 @@
  *
  * Examples:
  *   node bold-penguin-validator.js --url "https://example.com/page"
- *   node bold-penguin-validator.js --file urls.csv
- *   node bold-penguin-validator.js --file urls.csv --mobile --debug
- *   node bold-penguin-validator.js --file urls.csv --parallel 4
- *   node bold-penguin-validator.js --file urls.csv --all        (desktop + mobile)
- *   node bold-penguin-validator.js --file urls.csv --desktop    (default; last flag wins)
+ *   node bold-penguin-validator.js --file test-data/urls.csv
+ *   node bold-penguin-validator.js --file test-data/urls.csv --mobile --debug
+ *   node bold-penguin-validator.js --file test-data/urls.csv --parallel 4
+ *   node bold-penguin-validator.js --file test-data/urls.csv --all        (desktop + mobile)
+ *   node bold-penguin-validator.js --file test-data/urls.csv --desktop    (default; last flag wins)
  *
  * Mode flags (mutually exclusive, last one wins unless --all/--both is given):
  *   --desktop   Run desktop only (default)
@@ -24,17 +24,20 @@ const { parse } = require('csv-parse/sync');
 const { chromium, devices } = require('playwright');
 const XLSX = require('xlsx');
 
-let INPUT_CSV = 'urls.csv';
-let SINGLE_URL = null;
+let INPUT_CSV = 'test-data/urls.csv';
+// BASE_URL is useful for CI environments such as Harness. When it is set,
+// validate that URL instead of reading the default CSV file.
+let SINGLE_URL = process.env.BASE_URL || null;
 let MOBILE_MODE = false;
 let DESKTOP_MODE = false;
 let HEADED_MODE = false;
 let DEBUG_MODE = false;
 let PARALLEL_WORKERS = 1;
 let RUN_BOTH_MODES = false;
+const CLI_MODE = require.main === module;
 
 const args = process.argv.slice(2);
-for (let i = 0; i < args.length; i++) {
+if (CLI_MODE) for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--file' || arg === '--csv') {
     if (!args[++i]) throw new Error(`${arg} requires a file name`);
@@ -659,14 +662,35 @@ async function validateButtonClick(page, locator, description, returnToUrl) {
     logStep('Validating browser back navigation', 2);
     let backSuccess = false;
     let backError = '';
+    let backSteps = 0;
+    const MAX_BACK_STEPS = 4;
     try {
-      await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
-      const settleAfterBack = await waitForPageToSettle(page, NAV_TIMEOUT);
-      const urlMatches = normalizeUrlForComparison(page.url()) === normalizeUrlForComparison(returnToUrl);
+      let settleAfterBack = { success: false, reason: 'Back navigation was not attempted' };
+      let urlMatches = false;
+      let previousBackUrl = page.url();
+
+      // Some CTA flows add an intermediate redirect page to browser history
+      // (for example: Nationwide -> /nwdirect -> Bold Penguin form). Keep
+      // going back until the original page is reached or the safety limit is hit.
+      while (backSteps < MAX_BACK_STEPS) {
+        backSteps++;
+        const response = await page.goBack({ waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
+        settleAfterBack = await waitForPageToSettle(page, NAV_TIMEOUT);
+        const currentBackUrl = page.url();
+        urlMatches = normalizeUrlForComparison(currentBackUrl) === normalizeUrlForComparison(returnToUrl);
+        if (urlMatches) break;
+        // Playwright may return null for a history traversal that still
+        // changed the URL. Continue when progress was made, even without a
+        // response object; stop only when the URL no longer changes.
+        if (!response && currentBackUrl === previousBackUrl) break;
+        previousBackUrl = currentBackUrl;
+        logStep(`Back navigation reached ${currentBackUrl}; continuing toward ${returnToUrl}`, 2);
+      }
+
       backSuccess = urlMatches && settleAfterBack.success;
 
       if (!urlMatches) {
-        backError = `Browser back returned ${page.url()} instead of ${returnToUrl}`;
+        backError = `Browser back returned ${page.url()} instead of ${returnToUrl} after ${backSteps} step(s)`;
       } else if (!settleAfterBack.success) {
         backError = `Browser back reached the expected URL but the page did not finish rendering: ${settleAfterBack.reason}`;
       }
@@ -1492,22 +1516,33 @@ async function runValidationSession(modeName, isMobileMode) {
   return results;
 }
 
-(async () => {
-  const requestedModes = RUN_BOTH_MODES ? ['desktop', 'mobile']
-    : MOBILE_MODE ? ['mobile']
-    : ['desktop'];
+if (CLI_MODE) {
+  (async () => {
+    const requestedModes = RUN_BOTH_MODES ? ['desktop', 'mobile']
+      : MOBILE_MODE ? ['mobile']
+      : ['desktop'];
 
-  const allResults = [];
-  for (const modeName of requestedModes) {
-    console.log(`\n=== Running ${modeName} mode ===`);
-    const results = await runValidationSession(modeName, modeName === 'mobile');
-    if (Array.isArray(results)) allResults.push({ modeName, results });
-  }
+    const allResults = [];
+    for (const modeName of requestedModes) {
+      console.log(`\n=== Running ${modeName} mode ===`);
+      const results = await runValidationSession(modeName, modeName === 'mobile');
+      if (Array.isArray(results)) allResults.push({ modeName, results });
+    }
 
-  if (requestedModes.length > 1) {
-    console.log('\nCompleted the requested desktop/mobile validation runs.');
-  }
+    if (requestedModes.length > 1) {
+      console.log('\nCompleted the requested desktop/mobile validation runs.');
+    }
 
-  const anyFailed = allResults.some(({ results }) => results.some(r => r && r.status === 'FAIL'));
-  if (anyFailed) process.exitCode = 1;
-})();
+    const anyFailed = allResults.some(({ results }) => results.some(r => r && r.status === 'FAIL'));
+    if (anyFailed) process.exitCode = 1;
+  })().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  validateUrl,
+  writeReports,
+  runValidationSession
+};
