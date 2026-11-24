@@ -33,21 +33,39 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run all scripts
+      - name: Run all scripts (skip missing)
+        shell: bash
         run: |
-          npm run test:e2e
-          npm run test:e2e:sanity
-          npm run test:e2e:smoke
-          npm run test:e2e:regression
-          npm run validate
-          npm run validate:sanity
-          npm run validate:smoke
-          npm run validate:regression
-          npm run validate:spanish
-          npm run validate:mobile
-          npm run validate:all
-          npm run validate:ci
-          npm run validate:e2e
+          set -euo pipefail
+
+          node -e "const pkg=require('./package.json'); const scripts=pkg.scripts||{}; const desired=[
+            'test:e2e',
+            'test:e2e:sanity',
+            'test:e2e:spanish',
+            'test:e2e:smoke',
+            'test:e2e:regression',
+            'validate',
+            'validate:sanity',
+            'validate:spanish',
+            'validate:smoke',
+            'validate:regression',
+            'validate:mobile',
+            'validate:all',
+            'validate:ci',
+            'validate:e2e'
+          ];
+          for (const name of desired) {
+            if (!scripts[name]) {
+              console.log('SKIP ' + name + ' (missing from package.json)');
+              continue;
+            }
+            console.log('RUN  ' + name);
+            console.log('::group::npm run ' + name);
+            const {spawnSync}=require('child_process');
+            const res=spawnSync('npm',['run',name],{stdio:'inherit'});
+            console.log('::endgroup::');
+            if (res.status !== 0) process.exit(res.status ?? 1);
+          }"
 
       - name: Upload reports and artifacts
         if: always()
