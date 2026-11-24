@@ -1,5 +1,9 @@
-node_modules/
+﻿node_modules/
 reports/
 screenshots/
 test-results/
 .playwright/
+puppeteer_profile/
+**/puppeteer_profile/
+tests/validators/reports/
+**/*.xlsx

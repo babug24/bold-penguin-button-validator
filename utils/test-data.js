@@ -2,7 +2,22 @@ const fs = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
 
-function readUrls(inputFile = process.env.BP_URL_FILE || 'url.csv') {
+function readUrls(input = {}) {
+  const options = typeof input === 'string' ? { inputFile: input } : input;
+  const mode = options.mode || process.env.TEST_MODE || 'regression';
+  const defaultFiles = {
+    sanity: 'urls.sanity.csv',
+    smoke: 'urls.smoke.csv',
+    regression: 'urls.regression.csv'
+  };
+
+  if (!defaultFiles[mode]) {
+    throw new Error(`Unknown test mode: ${mode}. Expected smoke or regression.`);
+  }
+
+  const inputFile = options.inputFile
+    || process.env.BP_URL_FILE
+    || path.join(__dirname, '..', 'test-data', defaultFiles[mode]);
   const inputPath = path.resolve(inputFile);
 
   if (!fs.existsSync(inputPath)) {

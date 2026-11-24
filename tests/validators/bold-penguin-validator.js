@@ -5,11 +5,11 @@
  *
  * Examples:
  *   node bold-penguin-validator.js --url "https://example.com/page"
- *   node bold-penguin-validator.js --file urls.csv
- *   node bold-penguin-validator.js --file urls.csv --mobile --debug
- *   node bold-penguin-validator.js --file urls.csv --parallel 4
- *   node bold-penguin-validator.js --file urls.csv --all        (desktop + mobile)
- *   node bold-penguin-validator.js --file urls.csv --desktop    (default; last flag wins)
+ *   node bold-penguin-validator.js --file test-data/urls.csv
+ *   node bold-penguin-validator.js --file test-data/urls.csv --mobile --debug
+ *   node bold-penguin-validator.js --file test-data/urls.csv --parallel 4
+ *   node bold-penguin-validator.js --file test-data/urls.csv --all        (desktop + mobile)
+ *   node bold-penguin-validator.js --file test-data/urls.csv --desktop    (default; last flag wins)
  *
  * Mode flags (mutually exclusive, last one wins unless --all/--both is given):
  *   --desktop   Run desktop only (default)
@@ -24,7 +24,7 @@ const { parse } = require('csv-parse/sync');
 const { chromium, devices } = require('playwright');
 const XLSX = require('xlsx');
 
-let INPUT_CSV = 'urls.csv';
+let INPUT_CSV = 'test-data/urls.csv';
 // BASE_URL is useful for CI environments such as Harness. When it is set,
 // validate that URL instead of reading the default CSV file.
 let SINGLE_URL = process.env.BASE_URL || null;

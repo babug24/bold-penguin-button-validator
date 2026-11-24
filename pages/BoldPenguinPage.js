@@ -1,4 +1,4 @@
-const { validateUrl } = require('../bold-penguin-validator-v6.1');
+const { validateUrl } = require('../tests/validators/bold-penguin-validator');
 
 class BoldPenguinPage {
   constructor(context) {

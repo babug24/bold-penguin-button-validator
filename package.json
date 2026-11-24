@@ -1,28 +1,46 @@
-{
-  "name": "new-folder",
-  "version": "1.0.0",
-  "description": "",
-  "main": "bold-penguin-button-validator.js",
-  "scripts": {
-    "test": "npm run test:e2e",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "validate": "node bold-penguin-validator-v6.1.js --file url.csv --desktop",
-    "validate:mobile": "node bold-penguin-validator-v6.1.js --file url.csv --mobile",
-    "validate:all": "node bold-penguin-validator-v6.1.js --file url.csv --all",
-    "validate:ci": "node bold-penguin-validator-v6.1.js --file url.csv --all --parallel 2",
-    "validate:e2e": "node run-desktop-and-mobile.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "csv-parse": "^7.0.2",
-    "playwright": "^1.62.1",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.62.1"
-  }
+﻿{
+    "name":  "playwright-validation-framework",
+    "version":  "1.0.0",
+    "description":  "Reusable Playwright framework for smoke and regression validation scripts",
+    "scripts":  {
+                    "test":  "npm run test:e2e",
+                    "test:e2e":  "playwright test",
+                    "test:e2e:headed":  "playwright test --headed",
+                    "test:e2e:sanity":  "node scripts/run-playwright.js sanity tests/bold-penguin.spec.js",
+                    "test:e2e:spanish":  "node scripts/run-playwright.js sanity tests/spanish.spec.js --project=spanish",
+                    "test:e2e:smoke":  "node scripts/run-playwright.js smoke tests/bold-penguin.spec.js",
+                    "test:e2e:regression":  "node scripts/run-playwright.js regression tests/bold-penguin.spec.js",
+                    "validate":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.csv --desktop",
+                    "validate:sanity":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.sanity.csv --desktop",
+                    "validate:spanish":  "node tests/validators/spanish-validator.js --file test-data/urls.spanish.csv",
+                    "validate:smoke":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.smoke.csv --desktop",
+                    "validate:regression":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.regression.csv --desktop",
+                    "validate:mobile":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.csv --mobile",
+                    "validate:all":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.csv --all",
+                    "validate:ci":  "node tests/validators/bold-penguin-validator.js --file test-data/urls.regression.csv --all --parallel 2",
+                    "validate:e2e":  "node scripts/run-desktop-and-mobile.js"
+                },
+    "keywords":  [
+                     "playwright",
+                     "e2e",
+                     "smoke-testing",
+                     "regression-testing",
+                     "validation-framework"
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "private":  true,
+    "type":  "commonjs",
+    "engines":  {
+                    "node":  "\u003e=20"
+                },
+    "dependencies":  {
+                         "csv-parse":  "^7.0.2",
+                         "playwright":  "^1.62.1",
+                         "puppeteer":  "^25.18.1",
+                         "xlsx":  "^0.18.5"
+                     },
+    "devDependencies":  {
+                            "@playwright/test":  "^1.62.1"
+                        }
 }

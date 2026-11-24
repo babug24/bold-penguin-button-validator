@@ -15,11 +15,18 @@ module.exports = defineConfig({
   projects: [
     {
       name: 'desktop',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: '**/spanish.spec.js'
     },
     {
       name: 'mobile',
-      use: { ...devices['iPhone 12'], browserName: 'chromium' }
+      use: { ...devices['iPhone 12'], browserName: 'chromium' },
+      testIgnore: '**/spanish.spec.js'
+    },
+    {
+      name: 'spanish',
+      testMatch: '**/spanish.spec.js',
+      use: { ...devices['Desktop Chrome'] }
     }
   ]
 });
