@@ -1,4 +1,5 @@
-name: Bold Penguin validation
+﻿name: Bold Penguin validation
+run-name: Bold Penguin validation (${{ github.ref_name }})
 
 on:
   push:
