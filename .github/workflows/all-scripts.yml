@@ -54,6 +54,16 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Compute safe names
+        id: names
+        shell: bash
+        env:
+          TARGET_SCRIPT: ${{ matrix.script }}
+        run: |
+          set -euo pipefail
+          SAFE_SCRIPT="${TARGET_SCRIPT//:/-}"
+          echo "safe_script=${SAFE_SCRIPT}" >> "$GITHUB_OUTPUT"
+
       - name: Check if script exists
         id: script
         shell: bash
@@ -75,7 +85,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: all-scripts-${{ matrix.script }}-${{ github.run_number }}
+          name: all-scripts-${{ steps.names.outputs.safe_script }}-${{ github.run_number }}
           path: |
             reports/
             screenshots/
